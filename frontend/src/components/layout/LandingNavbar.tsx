@@ -80,7 +80,7 @@ export function LandingNavbar() {
             <a
               key={item.id}
               href={`#${item.id}`}
-              ref={el => navRefs.current[i] = el}
+              ref={el => { navRefs.current[i] = el; }}
               className={cn(
                 "relative px-1 py-0.5 cursor-pointer transition-colors",
                 active === item.id && "text-primary font-semibold",
