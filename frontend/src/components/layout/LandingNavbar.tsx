@@ -1,19 +1,62 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Zap, Menu, X } from "lucide-react";
 import { cn } from "@/utils/cn";
 
 export function LandingNavbar() {
+
+  const navItems = [
+    { id: "features", label: "Features" },
+    { id: "workflow", label: "How It Works" },
+    { id: "ai-studio", label: "AI Studio" },
+  ];
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [active, setActive] = useState("features");
+  const [hovered, setHovered] = useState<string | null>(null);
+  const navRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const underlineRef = useRef<HTMLDivElement | null>(null);
 
+  // Scroll spy logic
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+      let found = false;
+      for (let i = navItems.length - 1; i >= 0; i--) {
+        const section = document.getElementById(navItems[i].id);
+        if (section) {
+          const rect = section.getBoundingClientRect();
+          if (rect.top <= 80) {
+            setActive(navItems[i].id);
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) setActive(navItems[0].id);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Underline animation
+  useEffect(() => {
+    if (!underlineRef.current) return;
+    const idx = navItems.findIndex((item) => item.id === (hovered || active));
+    const el = navRefs.current[idx];
+    if (el && underlineRef.current) {
+      const rect = el.getBoundingClientRect();
+      const parentRect = el.parentElement!.getBoundingClientRect();
+      underlineRef.current.style.left = `${rect.left - parentRect.left}px`;
+      underlineRef.current.style.width = `${rect.width}px`;
+      underlineRef.current.style.opacity = "1";
+    } else if (underlineRef.current) {
+      underlineRef.current.style.opacity = "0";
+    }
+  }, [active, hovered]);
 
   return (
     <header
@@ -32,10 +75,32 @@ export function LandingNavbar() {
           <span className="font-display font-bold text-lg tracking-tight">TaskHub</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
-          <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-          <a href="#workflow" className="hover:text-foreground transition-colors">How It Works</a>
-          <a href="#ai-studio" className="hover:text-foreground transition-colors">AI Studio</a>
+        <nav className="hidden md:flex relative items-center gap-6 text-sm text-muted-foreground">
+          {navItems.map((item, i) => (
+            <a
+              key={item.id}
+              href={`#${item.id}`}
+              ref={el => navRefs.current[i] = el}
+              className={cn(
+                "relative px-1 py-0.5 cursor-pointer transition-colors",
+                active === item.id && "text-primary font-semibold",
+                hovered === item.id && "text-foreground"
+              )}
+              onMouseEnter={() => setHovered(item.id)}
+              onMouseLeave={() => setHovered(null)}
+              onTouchStart={() => setHovered(item.id)}
+              onTouchEnd={() => setHovered(null)}
+            >
+              {item.label}
+            </a>
+          ))}
+          {/* Animated underline */}
+          <motion.div
+            ref={underlineRef}
+            className="absolute bottom-0 h-0.5 bg-primary rounded-full"
+            style={{ left: 0, width: 0, opacity: 0, transition: 'all 0.3s cubic-bezier(.4,0,.2,1)' }}
+            aria-hidden="true"
+          />
         </nav>
 
         <div className="flex items-center gap-3">
@@ -64,14 +129,14 @@ export function LandingNavbar() {
           animate={{ opacity: 1, y: 0 }}
           className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl px-6 py-4 space-y-3"
         >
-          {["#features", "#workflow", "#ai-studio"].map((href) => (
+          {navItems.map((item) => (
             <a
-              key={href}
-              href={href}
+              key={item.id}
+              href={`#${item.id}`}
               onClick={() => setMobileOpen(false)}
               className="block text-sm text-muted-foreground hover:text-foreground py-1 capitalize transition-colors"
             >
-              {href.slice(1).replace(/-/g, " ")}
+              {item.label}
             </a>
           ))}
         </motion.div>
