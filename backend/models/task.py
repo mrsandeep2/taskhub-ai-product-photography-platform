@@ -13,15 +13,17 @@ class TaskModel:
 
     @staticmethod
     def get_by_id(task_id: str) -> dict | None:
-        db = get_db()
-        result = (
-            db.table(TaskModel.TABLE)
-            .select("*, assigned_user:users!tasks_assigned_to_fkey(id,name,email,avatar_url,role)")
-            .eq("id", task_id)
-            .maybe_single()
-            .execute()
-        )
-        return result.data
+        try:
+            db = get_db()
+            result = (
+                db.table(TaskModel.TABLE)
+                .select("*, assigned_user:users!tasks_assigned_to_fkey(id,name,email,avatar_url,role)")
+                .eq("id", task_id)
+                .execute()
+            )
+            return result.data[0] if result.data else None
+        except Exception:
+            return None
 
     @staticmethod
     def get_all(filters: dict | None = None, page: int = 1, per_page: int = 20) -> tuple[list, int]:

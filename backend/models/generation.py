@@ -24,15 +24,17 @@ class GenerationModel:
 
     @staticmethod
     def get_by_id(gen_id: str) -> dict | None:
-        db = get_db()
-        result = (
-            db.table(GenerationModel.TABLE)
-            .select("*")
-            .eq("id", gen_id)
-            .maybe_single()
-            .execute()
-        )
-        return result.data
+        try:
+            db = get_db()
+            result = (
+                db.table(GenerationModel.TABLE)
+                .select("*")
+                .eq("id", gen_id)
+                .execute()
+            )
+            return result.data[0] if result.data else None
+        except Exception:
+            return None
 
     @staticmethod
     def update(gen_id: str, data: dict) -> dict:

@@ -6,15 +6,21 @@ class UserModel:
 
     @staticmethod
     def get_by_id(user_id: str) -> dict | None:
-        db = get_db()
-        result = db.table(UserModel.TABLE).select("*").eq("id", user_id).maybe_single().execute()
-        return result.data
+        try:
+            db = get_db()
+            result = db.table(UserModel.TABLE).select("*").eq("id", user_id).execute()
+            return result.data[0] if result.data else None
+        except Exception:
+            return None
 
     @staticmethod
     def get_by_email(email: str) -> dict | None:
-        db = get_db()
-        result = db.table(UserModel.TABLE).select("*").eq("email", email).maybe_single().execute()
-        return result.data
+        try:
+            db = get_db()
+            result = db.table(UserModel.TABLE).select("*").eq("email", email).execute()
+            return result.data[0] if result.data else None
+        except Exception:
+            return None
 
     @staticmethod
     def upsert(data: dict) -> dict:
