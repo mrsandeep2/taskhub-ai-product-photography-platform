@@ -10,6 +10,8 @@ from middleware.auth import require_auth
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
+BACKEND_URL = "https://taskhub-api-production-5862.up.railway.app"
+
 
 def create_token(user_id: str) -> str:
     payload = {
@@ -20,22 +22,14 @@ def create_token(user_id: str) -> str:
     return jwt.encode(payload, config.JWT_SECRET, algorithm="HS256")
 
 
-def _base_url(req) -> str:
-    """Get base URL, respecting proxy headers for Railway/Render."""
-    forwarded_proto = req.headers.get("X-Forwarded-Proto", "")
-    if forwarded_proto:
-        host = req.headers.get("X-Forwarded-Host", req.host)
-        return f"{forwarded_proto}://{host}"
-    return req.host_url.rstrip("/")
 
 
 # ── Google OAuth ──────────────────────────────────────────────
 @auth_bp.get("/oauth/google")
 def google_login():
-    base = _base_url(request)
     params = urlencode({
         "client_id": config.GOOGLE_CLIENT_ID,
-        "redirect_uri": f"{base}/api/auth/oauth/google/callback",
+        "redirect_uri": f"{BACKEND_URL}/api/auth/oauth/google/callback",
         "response_type": "code",
         "scope": "openid email profile",
         "access_type": "offline",
@@ -50,14 +44,13 @@ def google_callback():
     if error or not code:
         return redirect(f"{config.FRONTEND_URL}/auth/login?error=oauth_denied")
 
-    base = _base_url(request)
     token_resp = http_requests.post(
         "https://oauth2.googleapis.com/token",
         data={
             "code": code,
             "client_id": config.GOOGLE_CLIENT_ID,
             "client_secret": config.GOOGLE_CLIENT_SECRET,
-            "redirect_uri": f"{base}/api/auth/oauth/google/callback",
+            "redirect_uri": f"{BACKEND_URL}/api/auth/oauth/google/callback",
             "grant_type": "authorization_code",
         },
         timeout=10,
@@ -82,23 +75,15 @@ def google_callback():
     )
 
     token = create_token(user["id"])
-    resp = redirect(f"{config.FRONTEND_URL}/dashboard")
-    resp.set_cookie(
-        "access_token", token,
-        httponly=True, samesite="Lax",
-        max_age=7 * 86400,
-        secure=not config.DEBUG,
-    )
-    return resp
+    return redirect(f"{config.FRONTEND_URL}/auth/callback?token={token}")
 
 
 # ── GitHub OAuth ──────────────────────────────────────────────
 @auth_bp.get("/oauth/github")
 def github_login():
-    base = _base_url(request)
     params = urlencode({
         "client_id": config.GITHUB_CLIENT_ID,
-        "redirect_uri": f"{base}/api/auth/oauth/github/callback",
+        "redirect_uri": f"{BACKEND_URL}/api/auth/oauth/github/callback",
         "scope": "user:email",
     })
     return redirect(f"https://github.com/login/oauth/authorize?{params}")
@@ -111,7 +96,6 @@ def github_callback():
     if error or not code:
         return redirect(f"{config.FRONTEND_URL}/auth/login?error=oauth_denied")
 
-    base = _base_url(request)
     token_resp = http_requests.post(
         "https://github.com/login/oauth/access_token",
         headers={"Accept": "application/json"},
@@ -119,7 +103,7 @@ def github_callback():
             "client_id": config.GITHUB_CLIENT_ID,
             "client_secret": config.GITHUB_CLIENT_SECRET,
             "code": code,
-            "redirect_uri": f"{base}/api/auth/oauth/github/callback",
+            "redirect_uri": f"{BACKEND_URL}/api/auth/oauth/github/callback",
         },
         timeout=10,
     )
@@ -157,14 +141,7 @@ def github_callback():
     )
 
     token = create_token(user["id"])
-    resp = redirect(f"{config.FRONTEND_URL}/dashboard")
-    resp.set_cookie(
-        "access_token", token,
-        httponly=True, samesite="Lax",
-        max_age=7 * 86400,
-        secure=not config.DEBUG,
-    )
-    return resp
+    return redirect(f"{config.FRONTEND_URL}/auth/callback?token={token}")
 
 
 def _upsert_oauth_user(email: str, name: str, avatar_url: str | None, provider: str) -> dict:
