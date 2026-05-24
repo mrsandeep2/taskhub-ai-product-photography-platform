@@ -30,10 +30,10 @@ export default function ProfilePage() {
             <span className="text-muted-foreground">Member since</span>
             <span className="font-medium">{user?.created_at ? formatDate(user.created_at) : "—"}</span>
           </div>
-          {user?.provider && (
+          {user?.app_metadata?.provider && (
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Sign-in method</span>
-              <span className="font-medium capitalize">{user.provider}</span>
+              <span className="font-medium capitalize">{user.app_metadata.provider}</span>
             </div>
           )}
         </div>

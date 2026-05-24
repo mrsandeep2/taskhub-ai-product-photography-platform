@@ -25,6 +25,10 @@ export interface User {
   role: UserRole;
   created_at: string;
   last_active?: string;
+  app_metadata?: {
+    provider?: string;
+    [key: string]: any;
+  };
 }
 
 export interface Task {
